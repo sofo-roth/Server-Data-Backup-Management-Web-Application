@@ -1,1 +1,1 @@
-# Server-Data-Backup-Management-Web-Application
+The objective of this thesis is the development of a web application where authenticated users will be able to take backups from different MySQL and/or PostgreSQL servers and manage them through a user-friendly interface. The application will allow the creation of connections to remote database servers, the selection of the backup type, and the storage of the backups either locally or on the web server where the application will be hosted.
