@@ -1,0 +1,179 @@
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: "Poppins", sans-serif;
+}
+
+html, body{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-image: url(login_background.jpg);
+    background-size: cover;
+    background-position: center;
+    margin:0;
+    width: 100%;
+    height: 100%;
+    padding: 0%;
+}
+
+.wrapper{
+    width: 420px;
+    background: transparent;
+    border: 2px solid rgba(255, 255 , 255, .2);
+    backdrop-filter: blur(10px);
+    color:white;
+    border-radius: 12px;
+    padding: 30px 40px;
+}
+
+.title {
+    font-size: 100px;
+    font-weight: 600;
+    background-image: linear-gradient(to left, #175b83, #b393d3);
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    position: absolute;
+    top: 0px; /* Adjust as needed to move it up */
+    left: 50%; /* Center horizontally */
+    transform: translateX(-50%); /* Offset to perfectly center */
+    line-height: 1.2;
+}
+
+.wrapper h1{
+    font-size: 36px;
+    text-align: center;
+    line-height: 1.0;
+}
+
+.wrapper h2{
+    font-size: 46px;
+    text-align: center;
+    margin-bottom: 50px;
+    line-height: 1.2;
+}
+
+
+
+.wrapper .input-box{
+    position: relative;
+    width: 100%;
+    height: 50px;
+    margin: 30px 0;
+}
+
+.input-box input{
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, .2);
+    border-radius: 40px;
+    font-size: 16px;
+    color: #fff;
+    padding: 20px 45px 20px 20px;
+}
+
+.input-box input::placeholder{
+    color: #fff;
+}
+
+.input-box i{
+    position:absolute;
+    right: 20px;
+    top: 30%;
+    transform: translate(-50%);
+    font-size: 20px;
+}
+
+.wrapper .btn{
+    width: 100%;
+    height: 45px;
+    background: #fff;
+    border: none;
+    outline: none;
+    border-radius: 40px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, .1);
+    cursor: pointer;
+    font-size: 16px;
+    color: #333;
+    font-weight: 600;
+}
+
+.wrapper .register-link{
+    font-size: 14.5px;
+    text-align: center;
+    margin: 20px 0 15px;
+}
+
+.register-link p a{
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.register-link p a:hover{
+    text-decoration: underline;
+}
+
+.menu {
+    background-color: #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    position: fixed; /* Ensures it stays at the top */
+    top: 0; /* Aligns it to the top */
+    left: 0;
+    width: 100%; /* Makes sure it stretches across the entire width of the screen */
+    z-index: 1000; /* Keeps the nav on top of other elements */
+}
+
+.menu ul {
+    list-style-type: none;
+    display: flex;
+    align-items: center;
+}
+
+.menu ul li {
+    margin-right: 20px;
+}
+
+.menu ul li a {
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    padding: 10px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.menu ul li a:hover {
+    background-color: #555;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+}
+
+.logged-in {
+    color: white;
+    margin-right: 20px;
+    font-weight: bold;
+}
+
+.logout-btn {
+    background-color: red;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.logout-btn:hover {
+    background-color: darkred;
+}
