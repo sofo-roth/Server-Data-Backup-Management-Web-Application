@@ -2,12 +2,22 @@
 session_start(); // Start the session
 
 // Check if the user is logged in by verifying the session variable
-if (!isset($_SESSION['username'])) {
+if (!isset($_SESSION['email'])) {
     header("Location: login.php"); // Redirect to login if not logged in
     exit;
 }
 
-$username = $_SESSION['username']; // Get the username from the session
+// Check if the success message is set
+if (isset($_SESSION['success_message'])) {
+    unset($_SESSION['success_message']); // Unset the message after displaying it
+}
+
+
+$email = $_SESSION['email']; 
+
+// Get the part of the email before the '@' symbol
+$emailParts = explode('@', $email);
+$username = $emailParts[0]; // Get the first part of the email
 ?>
 
 <!DOCTYPE html>
@@ -23,14 +33,19 @@ $username = $_SESSION['username']; // Get the username from the session
 <body>
     <nav class="menu">
         <ul>
-            <li><a href="home.php">Home</a></li>
-            <li><a href="news.php">News</a></li>
-            <li><a href="contact.php">Contact</a></li>
+        <li><a href="dashboard.php">HOME</a></li>
+        <li><a href="new_db_connection.php">New DB connection</a></li>
+        <li><a href="my_connections.php">My connections</a></li>
         </ul>
         <ul class="user-info">
             <li class="logged-in">Logged in as:   <?php echo htmlspecialchars($username); ?></li>
             <li><a href="logout.php" class="logout-btn">Logout</a></li>
         </ul>
     </nav>
+
+    <h2 class="title_home">BUDBs Project</h2>
+    <div class="wrapper_home">
+        <h1>Welcome to my official BUDB Thesis project main page</h1>
+    </div>
 </body>
 </html>

@@ -10,13 +10,12 @@ error_reporting(E_ALL);
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Collect form data from JSON input
     $input = json_decode(file_get_contents('php://input'), true);
-    $username = trim($input['username']);
     $email = trim($input['email']);
     $password = trim($input['password']);
 
     // Validate inputs
-    if (empty($username) || empty($email) || empty($password)) {
-        echo json_encode(['success' => false, 'message' => 'All fields are required!']);
+    if (empty($email) || empty($password)) {
+        echo json_encode(['success' => false, 'message' => 'Email and password are required!']);
         exit;
     }
 
@@ -28,28 +27,23 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     // Prepare the SQL query to insert a new user
     try {
-        $stmt = $pdo->prepare("INSERT INTO users (username, email, passwd, webtoken) VALUES (?, ?, ?, ?)");
-        $stmt->execute([$username, $email, $hashedPassword, $webtoken]);
-
+        $stmt = $pdo->prepare("INSERT INTO users (email, passwd, webtoken) VALUES (?, ?, ?)");
+        $stmt->execute([$email, $hashedPassword, $webtoken]);
+    
         // Return success response
         echo json_encode(['success' => true, 'message' => 'Sign up successful']);
     } catch (PDOException $e) {
-        if ($e->getCode() == 23000) {
-            $errorMessage = $e->getMessage();
-            if (strpos($errorMessage, 'username') !== false) {
-                echo json_encode(['success' => false, 'message' => 'Username already exists']);
-            }elseif (strpos($errorMessage, 'email') !== false) {
-                echo json_encode(['success' => false, 'message' => 'Email already exists']);
-            }
-                
-        }else {
+        if ($e->getCode() == 23000) { // Duplicate entry error code
+            echo json_encode(['success' => false, 'message' => 'Email already exists']);
+        } else {
             echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
         }
     }
+    
     exit; // End the script after processing the request
 }
-
 ?>
+
 
 <!-- HTML form for signup -->
 <!DOCTYPE html>
@@ -69,10 +63,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <form id="signUpForm">
             <h1>Create a new account</h1>
             <div class="input-box">
-                <i class='bx bx-user-plus'></i>
-                <input type="text" name="username" placeholder="Enter username" required>
-            </div>
-            <div class="input-box">
                 <i class='bx bx-envelope'></i>
                 <input type="email" name="email" placeholder="Enter email" required>
             </div>
@@ -85,37 +75,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 
     <script>
-        // Handle form submission with AJAX
-        $('#signUpForm').on('submit', function(e) {
-            e.preventDefault(); // Prevent default form submission
+    // Handle form submission with AJAX
+    // Handle form submission with AJAX
+$('#signUpForm').on('submit', function(e) {
+    e.preventDefault(); // Prevent default form submission
 
-            const formData = {
-                username: $("input[name='username']").val(),
-                email: $("input[name='email']").val(),
-                password: $("input[name='password']").val(),
-            };
+    const formData = {
+        email: $("input[name='email']").val(),
+        password: $("input[name='password']").val(),
+    };
 
-            $.ajax({
-                type: 'POST',
-                url: 'sign_up.php', // Point to the same file
-                contentType: 'application/json', // Send as JSON
-                data: JSON.stringify(formData), // Convert the data to JSON
-                success: function(response) {
-                    // Parse JSON response
-                    response = JSON.parse(response);
-                    if (response.success) {
-                        alert(response.message); // Show success message
-                        window.location.href = 'login.php';
-                    } else {
-                        alert(response.message); // Show error message
-                    }
-                },
-                error: function(error) {
-                    console.error(error);
-                    alert('Error during sign up'); // Handle any errors
-                }
-            });
-        });
-    </script>
+    $.ajax({
+        type: 'POST',
+        url: 'sign_up.php', // Point to the same file
+        contentType: 'application/json', // Send as JSON
+        data: JSON.stringify(formData), // Convert the data to JSON
+        success: function(response) {
+            if (typeof response === 'string') {
+                response = JSON.parse(response); // Parse JSON response if it's a string
+            }
+            if (response.success) {
+                alert(response.message); // Show success message
+                window.location.href = 'login.php'; // Redirect to login page
+            } else {
+                alert(response.message); // Show error message
+            }
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            console.error(jqXHR, textStatus, errorThrown);
+            alert('Error during sign up: ' + textStatus); // Handle any errors
+        }
+    });
+});
+
+</script>
+
 </body>
 </html>

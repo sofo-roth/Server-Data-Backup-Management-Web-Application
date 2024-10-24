@@ -1,51 +1,45 @@
 <?php
-// Include your database connection
+session_start(); // Start session to manage user login state
 include 'db_connection.php';
 
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
-session_start(); // Start a session to manage user login state
-
-$data = json_decode(file_get_contents('php://input'), true);
-
 // Check if the request method is POST for handling login
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // Collect form data from the POST request
-    $username = trim($_POST['username']);
+    $email = trim($_POST['email']);
     $password = trim($_POST['password']);
 
     // Validate inputs
-    if (empty($username) || empty($password)) {
-        echo json_encode(['success' => false, 'message' => 'Username and password are required!']);
+    if (empty($email) || empty($password)) {
+        echo json_encode(['success' => false, 'message' => 'Email and password are required!']);
         exit;
     }
 
-    // Prepare and execute the query to find the user
+    // Prepare and execute the query to find the user by email
     try {
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE username = ?");
-        $stmt->execute([$username]);
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+        $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         // Verify the password
         if ($user && password_verify($password, $user['passwd'])) {
             // Store user information in session
-            $_SESSION['user_id'] = $user['id'];
-            $_SESSION['username'] = $user['username'];
+            $_SESSION['user_id'] = $user['email']; // Store email instead of a non-existing id
+            $_SESSION['email'] = $user['email'];
 
             // Return success response
-            echo json_encode(['success' => true, 'message' => 'Login successful', 'user' => ['id' => $user['id'], 'username' => $user['username']]]);
+            echo json_encode(['success' => true, 'message' => 'Login successful', 'user' => ['email' => $user['email']]]);
         } else {
-            echo json_encode(['success' => false, 'message' => 'Invalid Username or Password']);
+            echo json_encode(['success' => false, 'message' => 'Invalid Email or Password']);
         }
     } catch (PDOException $e) {
-        echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+        echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
     }
     exit; // End the script after processing the request
 }
-
-// Render the HTML form if the request method is not POST
 ?>
 
 <!DOCTYPE html>
@@ -66,8 +60,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <form id="loginForm" method="POST">
             <h1>Login</h1>
             <div class="input-box">
-                <i class='bx bxs-user'></i>
-                <input type="text" name="username" placeholder="Enter username" required>
+                <i class='bx bxs-envelope'></i>
+                <input type="email" name="email" placeholder="Enter email" required>
             </div>
             <div class="input-box">
                 <i class='bx bxs-lock-alt'></i>
@@ -86,28 +80,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             e.preventDefault(); // Prevent default form submission
 
             const formData = {
-                username: $("input[name='username']").val(),
+                email: $("input[name='email']").val(),
                 password: $("input[name='password']").val(),
             };
 
             $.ajax({
-                type: 'POST',
-                url: 'login.php', // Point to the same file
-                data: formData, // Send form data
-                dataType: 'json', // Expect JSON response
-                success: function(response) {
-                    if (response.success) {
-                        alert('Login successful! Redirecting to dashboard...');
-                        window.location.href = 'dashboard.php';
-                    } else {
-                        alert(response.message);
-                    }
-                },
-                error: function(error) {
-                    console.error(error);
-                    alert('Error logging in');
-                }
-            });
+    type: 'POST',
+    url: 'login.php', // Ensure this points to your login PHP file
+    data: formData, // Send serialized form data
+    dataType: 'json', // Expect JSON response
+    success: function(response) {
+        console.log('Response:', response); // Log the entire response
+        if (response.success) {
+            alert('Login successful! Redirecting to dashboard...');
+            window.location.href = 'dashboard.php'; // Ensure this is the correct path
+        } else {
+            alert(response.message); // Display error message
+        }
+    },
+    error: function(jqXHR, textStatus, errorThrown) {
+        console.error('AJAX Error:', textStatus, errorThrown); // Log detailed error
+        alert('Error logging in: ' + textStatus);
+    }
+});
+
         });
     </script>
 
