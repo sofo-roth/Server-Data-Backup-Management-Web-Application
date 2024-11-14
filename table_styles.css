@@ -255,3 +255,30 @@ table td form button {
 table td form button:hover {
     background-color: #b393d3;
 }
+
+table td button.button_download {
+    background-color: #1d5421;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 5px 10px;
+}
+
+table td button.button_download:hover {
+    background-color: #3edc05;
+}
+
+table td button.button_delete {
+    background-color: #491f1f;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 5px 10px;
+}
+
+table td button.button_delete:hover {
+    background-color: #e82107;
+}
+

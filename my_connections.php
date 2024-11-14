@@ -43,9 +43,10 @@ try {
             <li><a href="dashboard.php">HOME</a></li>
             <li><a href="new_db_connection.php">New DB connection</a></li>
             <li><a href="my_connections.php">My connections</a></li>
+            <li><a href="my_backups.php">My Backup Files</a></li>
         </ul>
         <ul class="user-info">
-            <li class="logged-in">Logged in as:   <?php echo htmlspecialchars($username); ?></li>
+            <li class="logged-in">Logged in as: <?php echo htmlspecialchars($username); ?></li>
             <li><a href="logout.php" class="logout-btn">Logout</a></li>
         </ul>
     </nav>
@@ -71,14 +72,14 @@ try {
                                 <td><?php echo htmlspecialchars($connection['db_username']); ?></td>
                                 <td><?php echo htmlspecialchars($connection['db_name']); ?></td>
                                 <td>
-                                    <form action="backup.php" method="POST">
-                                        <input type="hidden" name="connection_id" value="<?php echo htmlspecialchars($connection['connection_id']); ?>"> <!-- Assuming you have an 'id' column -->
+                                    <form class="backup-form" action="backup.php" method="POST">
+                                        <input type="hidden" name="connection_id" value="<?php echo htmlspecialchars($connection['connection_id']); ?>">
                                         <select name="backup_type" required>
                                             <option value="" disabled selected>Select Backup Type</option>
-                                            <option value="full_backup">Full Backup</option>
-                                            <option value="incremental_backup">Incremental Backup</option>
-                                            <option value="differential_backup">Differential Backup</option>
-                                            <option value="transaction_log_backup">Transaction Log Backup</option>
+                                            <option value="full">Full Backup</option>
+                                            <option value="incremental">Incremental Backup</option>
+                                            <option value="differential">Differential Backup</option>
+                                            <option value="snapshot">Snapshot Backup</option>
                                         </select>
                                         <button type="submit">Backup</button>
                                     </form>
@@ -91,38 +92,38 @@ try {
                         </tr>
                     <?php endif; ?>
                 </tbody>
-
             </table>
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
-    $("form").on("submit", function(event) {
+    $(".backup-form").on("submit", function(event) {
         event.preventDefault(); // Prevent the default form submission
 
-        // Collect form data
         var formData = $(this).serialize(); // Serialize the form data
 
         $.ajax({
             type: "POST",
-            url: "backup.php", // Change this to the path of your PHP script
+            url: "backup.php",
             data: formData,
             dataType: "json",
             success: function(response) {
+                console.log(response); // Debugging: check the full response object
                 if (response.success) {
                     alert(response.message); // Display success message
                 } else {
                     alert("Error: " + response.message); // Display error message
                 }
             },
-            error: function() {
-                alert("An unexpected error occurred.");
+            error: function(xhr, status, error) {
+                console.error("AJAX Error: ", status, error); // Log any AJAX errors
+                console.error("Response Text:", xhr.responseText); // Display the response text
+                alert("An unexpected error occurred: " + xhr.responseText); // Show full error details
             }
         });
     });
 });
 </script>
-
 </body>
 </html>

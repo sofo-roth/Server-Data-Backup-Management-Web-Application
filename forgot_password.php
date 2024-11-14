@@ -1,53 +1,181 @@
 <?php
 include 'db_connection.php';
-require 'vendor/autoload.php';
-use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
 
-if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $email = $_POST['email'];
+// Define the encryption key (make sure to store this securely)
+define('ENCRYPTION_KEY', 'your-secure-encryption-key'); // Replace this with your own key
 
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ?");
+// Function to decrypt the security answer
+function decryptData($encryptedData) {
+    return openssl_decrypt($encryptedData, 'AES-128-ECB', ENCRYPTION_KEY);
+}
+
+// Step 1: Handle the email input
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email']) && !isset($_POST['security_answer'])) {
+    $email = trim($_POST['email']);
+    $stmt = $pdo->prepare("SELECT security_question FROM users WHERE email = ?");
     $stmt->execute([$email]);
     $user = $stmt->fetch();
 
     if ($user) {
-        $reset_token = bin2hex(random_bytes(50));  // Generate a secure token
-        $token_expiry = date("Y-m-d H:i:s", strtotime("+1 hour"));  // 1 hour expiry
+        echo json_encode(['success' => true, 'security_question' => $user['security_question']]);
+    } else {
+        echo json_encode(['success' => false, 'message' => 'No user found with that email.']);
+    }
+    exit;
+}
 
-        $stmt = $pdo->prepare("UPDATE users SET reset_token = ?, token_expiry = ? WHERE email = ?");
-        $stmt->execute([$reset_token, $token_expiry, $email]);
+// Step 2: Handle security question and password reset
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'], $_POST['security_answer'], $_POST['new_password'])) {
+    $email = trim($_POST['email']);
+    $security_answer = trim($_POST['security_answer']);
+    $new_password = trim($_POST['new_password']);
 
-        // Send email
-        $mail = new PHPMailer(true);
-        try {
-            $mail->isSMTP();
-            $mail->Host = 'smtp.example.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'your_email@example.com';
-            $mail->Password = 'your_email_password';
-            $mail->SMTPSecure = 'tls';
-            $mail->Port = 587;
+    // Fetch stored encrypted security answer for the email
+    $stmt = $pdo->prepare("SELECT security_answer FROM users WHERE email = ?");
+    $stmt->execute([$email]);
+    $user = $stmt->fetch();
 
-            $mail->setFrom('your_email@example.com', 'Your Site');
-            $mail->addAddress($email);
-            $mail->isHTML(true);
-            $mail->Subject = 'Password Reset';
-            $mail->Body    = "Click <a href='http://localhost/reset_password.php?token=$reset_token'>here</a> to reset your password.";
+    if ($user) {
+        // Decrypt the stored security answer
+        $decryptedAnswer = decryptData($user['security_answer']);
 
-            $mail->send();
-            echo "Password reset email sent!";
-        } catch (Exception $e) {
-            echo "Mailer Error: {$mail->ErrorInfo}";
+        // Verify the answer entered by the user
+        if ($security_answer === $decryptedAnswer) {
+            // Hash the new password and update
+            $hashedPassword = password_hash($new_password, PASSWORD_DEFAULT);
+            $updateStmt = $pdo->prepare("UPDATE users SET passwd = ? WHERE email = ?");
+            $updateStmt->execute([$hashedPassword, $email]);
+
+            echo json_encode(['success' => true, 'message' => 'Password reset successfully!']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'Incorrect answer to the security question.']);
         }
     } else {
-        echo "No user found with that email.";
+        echo json_encode(['success' => false, 'message' => 'No user found with that email.']);
     }
+    exit;
 }
 ?>
 
-<!-- Forgot Password Form -->
-<form method="POST" action="forgot_password.php">
-    <input type="email" name="email" required placeholder="Enter your email">
-    <button type="submit">Submit</button>
-</form>
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forgot Password</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .form-container {
+            width: 300px;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        .input-box {
+            margin-bottom: 15px;
+        }
+        .input-box input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+        .btn {
+            width: 100%;
+            padding: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="form-container" id="forgotPasswordForm">
+        <h2>Forgot Password</h2>
+        <div class="input-box">
+            <label>Email:</label>
+            <input type="email" id="email" placeholder="Enter your email" required>
+        </div>
+        <button class="btn" id="submitEmail">Submit</button>
+    </div>
+
+    <div class="form-container" id="securityQuestionForm" style="display:none;">
+        <h2>Security Question</h2>
+        <div class="input-box">
+            <label id="securityQuestionLabel"></label>
+            <input type="text" id="securityAnswer" placeholder="Answer" required>
+        </div>
+        <div class="input-box">
+            <label>New Password:</label>
+            <input type="password" id="newPassword" placeholder="Enter new password" required>
+        </div>
+        <button class="btn" id="resetPassword">Reset Password</button>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Step 1: Submit email to get security question
+        $('#submitEmail').on('click', function() {
+            var email = $('#email').val();
+            
+            $.ajax({
+                type: 'POST',
+                url: 'forgot_password.php',
+                data: { email: email },
+                success: function(response) {
+                    response = JSON.parse(response);
+
+                    if (response.success) {
+                        $('#securityQuestionLabel').text(response.security_question);
+                        $('#forgotPasswordForm').hide();
+                        $('#securityQuestionForm').show();
+                    } else {
+                        alert(response.message);
+                    }
+                }
+            });
+        });
+
+        // Step 2: Submit security answer and new password
+        $('#resetPassword').on('click', function() {
+            var email = $('#email').val();
+            var securityAnswer = $('#securityAnswer').val();
+            var newPassword = $('#newPassword').val();
+
+            $.ajax({
+                type: 'POST',
+                url: 'forgot_password.php',
+                data: {
+                    email: email,
+                    security_answer: securityAnswer,
+                    new_password: newPassword
+                },
+                success: function(response) {
+                    response = JSON.parse(response);
+
+                    alert(response.message);
+                    if (response.success) {
+                        window.location.href = 'login.php';
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

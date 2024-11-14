@@ -31,6 +31,7 @@ $username = $emailParts[0]; // Get the first part of the email
             <li><a href="dashboard.php">HOME</a></li>
             <li><a href="new_db_connection.php">New DB connection</a></li>
             <li><a href="my_connections.php">My connections</a></li>
+            <li><a href="my_backups.php">My Backup Files</a></li>
         </ul>
         <ul class="user-info">
             <li class="logged-in">Logged in as:   <?php echo htmlspecialchars($username); ?></li>

@@ -202,3 +202,51 @@ html, body{
     background-color: darkred;
 }
 
+/* Style for the select dropdown */
+.select-box {
+    position: relative;
+    width: 100%;
+    margin-bottom: 1rem;
+    margin-right: 12%;
+}
+
+.select-box select {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f8f8f8;
+    color: #333;
+    appearance: none; /* Hides the default dropdown icon */
+    font-family: 'Poppins', sans-serif;
+    outline: none;
+    transition: all 0.3s ease;
+}
+
+.select-box:hover select {
+    border-color: #666;
+    background-color: #e8e8e8;
+}
+
+/* Custom arrow for the dropdown */
+.select-box::after {
+    content: '\25BC'; /* Downward arrow */
+    font-size: 1rem;
+    position: absolute;
+    top: 50%;
+    right: 1rem;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: #666;
+}
+
+.select-box select:focus {
+    border-color: #666;
+    box-shadow: 0 0 5px rgba(100, 100, 100, 0.3);
+}
+
+/* Add some padding to the container */
+.wrapper .input-box {
+    margin-bottom: 1.5rem;
+}
