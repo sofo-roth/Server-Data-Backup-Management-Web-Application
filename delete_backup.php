@@ -1,53 +1,66 @@
 <?php
-// Start the session if it's not already started
-session_start();
+// Include your database connection
+require_once 'db_connection.php';
 
-// Include the database connection file
-require_once 'db_connection.php'; // Adjust path as necessary
+// Start the session if not started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Check if the user is authenticated (optional based on your app's setup)
-if (!isset($_SESSION['user_id'])) {
+// Check if the user is logged in
+if (!isset($_SESSION['email'])) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized']);
     exit;
 }
 
-// Get the file name from the POST request
+// Parse JSON input
 $data = json_decode(file_get_contents('php://input'), true);
 $fileName = $data['file'] ?? '';
 
-if (!$fileName) {
+if (empty($fileName)) {
     echo json_encode(['success' => false, 'message' => 'No file specified']);
     exit;
 }
 
-// Define the directory where backups are stored
-$user_id = $_SESSION['user_id']; // Example user-specific directory
-$backupDir = __DIR__ . "/backups/user_$user_id/";
+// User-specific backup directory
+$email = $_SESSION['email'];
+$safeEmail = str_replace(['@', '.'], '_', $email); // Ensure compatibility with file system
+$backupDir = __DIR__ . "/backups/{$safeEmail}/"; // Use sanitized email for directory
 
-// Full path to the backup file
+// Full path to the file
 $filePath = $backupDir . basename($fileName);
 
-// Delete the file if it exists
-$fileDeleted = false;
-if (file_exists($filePath)) {
-    $fileDeleted = unlink($filePath);
+// Debugging logs
+error_log("Backup Directory: " . $backupDir);
+error_log("Full file path: " . $filePath);
+
+// Check if file exists
+if (!file_exists($filePath)) {
+    error_log("File not found at path: " . $filePath);
+    echo json_encode(['success' => false, 'message' => 'File not found']);
+    exit;
 }
 
-// Delete the database log entry if the file was successfully deleted
-if ($fileDeleted) {
-    // Prepare the SQL query to delete the log entry
-    $stmt = $pdo->prepare("DELETE FROM backup_logs WHERE file_name = :file_name AND user_id = :user_id");
-    $stmt->bindParam(':file_name', $fileName);
-    $stmt->bindParam(':user_id', $user_id);
-    $logDeleted = $stmt->execute();
+// Attempt to delete the file
+if (unlink($filePath)) {
+    try {
+        // Delete the log entry from the database
+        $stmt = $pdo->prepare("DELETE FROM backup_logs WHERE file_name = :file_name AND email = :email");
+        $stmt->bindParam(':file_name', $fileName, PDO::PARAM_STR);
+        $stmt->bindParam(':email', $email, PDO::PARAM_STR);
 
-    if ($logDeleted) {
-        echo json_encode(['success' => true, 'message' => 'File and log entry deleted successfully']);
-    } else {
-        echo json_encode(['success' => false, 'message' => 'File deleted, but failed to delete log entry']);
+        if ($stmt->execute()) {
+            echo json_encode(['success' => true, 'message' => 'File and log entry deleted successfully']);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'File deleted, but failed to delete log entry']);
+        }
+    } catch (PDOException $e) {
+        error_log("Database error: " . $e->getMessage());
+        echo json_encode(['success' => false, 'message' => 'File deleted, but a database error occurred']);
     }
 } else {
-    echo json_encode(['success' => false, 'message' => 'Failed to delete the file or file not found']);
+    error_log("Failed to delete the file at path: " . $filePath);
+    echo json_encode(['success' => false, 'message' => 'Failed to delete the file']);
 }
 
 exit;

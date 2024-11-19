@@ -58,8 +58,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'], $_POST['secur
 ?>
 
 
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,68 +65,43 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'], $_POST['secur
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Forgot Password</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .form-container {
-            width: 300px;
-            padding: 20px;
-            border: 1px solid #ccc;
-            border-radius: 10px;
-            background-color: #f9f9f9;
-        }
-        .input-box {
-            margin-bottom: 15px;
-        }
-        .input-box input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
-        .btn {
-            width: 100%;
-            padding: 10px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+    <link rel="stylesheet" href="styles.css"> <!-- Reuse your styles.css for consistent styling -->
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- jQuery for AJAX -->
 </head>
 <body>
-
-    <div class="form-container" id="forgotPasswordForm">
-        <h2>Forgot Password</h2>
-        <div class="input-box">
-            <label>Email:</label>
-            <input type="email" id="email" placeholder="Enter your email" required>
+    <h2 class="title">BUDBs Project</h2>
+    
+    <div class="wrapper">
+        <!-- Step 1: Email input form -->
+        <div class="form-container" id="forgotPasswordForm">
+            <h1>Forgot Password</h1>
+            <div class="input-box">
+                <i class='bx bx-envelope'></i>
+                <input type="email" id="email" placeholder="Enter your email" required>
+            </div>
+            <button class="btn" id="submitEmail">Submit</button>
         </div>
-        <button class="btn" id="submitEmail">Submit</button>
+
+        <!-- Step 2: Security Question form -->
+        <!-- Step 2: Security Question form -->
+        <div class="form-container" id="securityQuestionForm" style="display:none;">
+            <h1>Security Question</h1>
+            <div class="input-box">
+                <label id="securityQuestionLabel"></label>
+            </div>
+            <div class="input-box">
+                <i class='bx bx-question-mark'></i> <!-- Icon should be inside the input box container -->
+                <input type="text" id="securityAnswer" placeholder="Answer" required>
+            </div>
+            <div class="input-box">
+                <i class='bx bx-lock-alt'></i>
+                <input type="password" id="newPassword" placeholder="Enter new password" required>
+            </div>
+            <button class="btn" id="resetPassword">Reset Password</button>
+        </div>
     </div>
 
-    <div class="form-container" id="securityQuestionForm" style="display:none;">
-        <h2>Security Question</h2>
-        <div class="input-box">
-            <label id="securityQuestionLabel"></label>
-            <input type="text" id="securityAnswer" placeholder="Answer" required>
-        </div>
-        <div class="input-box">
-            <label>New Password:</label>
-            <input type="password" id="newPassword" placeholder="Enter new password" required>
-        </div>
-        <button class="btn" id="resetPassword">Reset Password</button>
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
         // Step 1: Submit email to get security question
         $('#submitEmail').on('click', function() {
@@ -171,7 +144,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'], $_POST['secur
 
                     alert(response.message);
                     if (response.success) {
-                        window.location.href = 'login.php';
+                        window.location.href = 'login.php'; // Redirect to login page
                     }
                 }
             });
@@ -179,3 +152,4 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['email'], $_POST['secur
     </script>
 </body>
 </html>
+

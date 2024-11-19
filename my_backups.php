@@ -44,6 +44,7 @@ try {
             <li><a href="new_db_connection.php">New DB connection</a></li>
             <li><a href="my_connections.php">My connections</a></li>
             <li><a href="my_backups.php">My Backup Files</a></li>
+            <li><a href="delete_user.php" class="logout-btn">DELETE USER</a></li> <!-- Added Delete User -->
         </ul>
         <ul class="user-info">
             <li class="logged-in">Logged in as: <?php echo htmlspecialchars($username); ?></li>
@@ -65,6 +66,8 @@ try {
             </tbody>
         </table>
 
+<!-- SweetAlert2 CDN -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script>
             // Fetch backup files using AJAX
             fetch('list_backups.php')
@@ -122,24 +125,21 @@ try {
             function deleteBackupFile(file) {
                 if (confirm('Are you sure you want to delete this backup?')) {
                     fetch('delete_backup.php', {
-                        method: 'POST',
-                        body: JSON.stringify({ file: file }),
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Backup file deleted successfully!');
-                            // Remove the deleted file from the table
-                            const row = document.querySelector(`button[data-file="${file}"]`).closest('tr');
-                            row.remove();
-                        } else {
-                            alert(data.message || 'Failed to delete the backup file.');
-                        }
-                    })
-                    .catch(error => alert('Error deleting backup: ' + error));
+                    method: 'POST',
+                    body: JSON.stringify({ file }),
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Deleted!', data.message, 'success');
+                        const row = document.querySelector(`button[data-file="${file}"]`).closest('tr');
+                        row.remove();
+                    } else {
+                        Swal.fire('Error', data.message || 'Failed to delete the file', 'error');
+                    }
+                })
+                .catch(error => Swal.fire('Error', 'An unexpected error occurred: ' + error, 'error'));
                 }
             }
         </script>
