@@ -169,12 +169,7 @@ try {
         });
     });
 
-    // Cancel button to close the modal
-    $("button[type='button']").on("click", function() {
-        $('#password-modal').hide();
-        $("#password-error").hide(); // Hide the error message
-    });
-
+    
     // Handle the backup form submission and show the result in a SweetAlert popup
     $(".backup-form").on("submit", function(event) {
         event.preventDefault(); // Prevent the default form submission

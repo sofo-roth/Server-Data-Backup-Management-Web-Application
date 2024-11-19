@@ -48,7 +48,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             // Fetch the last full backup timestamp dynamically for incremental backups
             $lastBackupTimestamp = null;
             if ($backupType === 'incremental') {
-                $stmt = $pdo->prepare("SELECT last_full_backup FROM backup_logs WHERE email = :email ORDER BY last_backup DESC LIMIT 1");
+                // Get the last backup timestamp from the backup_logs table
+                $stmt = $pdo->prepare("SELECT last_backup FROM backup_logs WHERE email = :email ORDER BY last_backup DESC LIMIT 1");
                 $stmt->execute([':email' => $email]);
                 $lastBackupTimestamp = $stmt->fetchColumn();
                 
@@ -62,30 +63,106 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $command = '';
             if ($backupType === 'full') {
                 $command = "mysqldump -u " . escapeshellarg($username) . " -p" . escapeshellarg($password) . " " . escapeshellarg($database) . " > " . escapeshellarg($backupFilePath);
-            } elseif ($backupType === 'incremental' && $lastBackupTimestamp) {
-                $command = "mysqldump -u " . escapeshellarg($username) . " -p" . escapeshellarg($password) . " --where='updated_at > \"" . $lastBackupTimestamp . "\"' " . escapeshellarg($database) . " > " . escapeshellarg($backupFilePath);
-            } elseif ($backupType === 'differential') {
-                $stmt = $pdo->prepare("SELECT last_backup FROM backup_logs WHERE backup_type = 'full' ORDER BY last_backup DESC LIMIT 1");
-                $stmt->execute();
-                $lastFullBackup = $stmt->fetchColumn();
-                if ($lastFullBackup) {
-                    $command = "mysqldump -u " . escapeshellarg($username) . " -p" . escapeshellarg($password) . " --where='updated_at > \"" . $lastFullBackup . "\"' " . escapeshellarg($database) . " > " . escapeshellarg($backupFilePath);
+            } elseif ($backupType === 'incremental') {
+                // Use the last modified timestamp to back up only modified records
+                $stmt = $pdo->prepare("SELECT MAX(last_modified_timestamp) FROM backup_logs WHERE last_modified_timestamp > :lastBackupTimestamp");
+                $stmt->execute([':lastBackupTimestamp' => $lastBackupTimestamp]);
+                $lastModifiedTimestamp = $stmt->fetchColumn();
+                
+                if ($lastModifiedTimestamp) {
+                    // Run mysqldump with incremental changes based on modified data
+                    $command = "mysqldump -u " . escapeshellarg($username) . " -p" . escapeshellarg($password) . " --single-transaction --quick --lock-tables=false " . escapeshellarg($database) . " > " . escapeshellarg($backupFilePath);
                 } else {
-                    echo json_encode(['success' => false, 'message' => 'No full backup found for differential backup.']);
+                    echo json_encode(['success' => false, 'message' => 'No changes found for incremental backup.']);
                     exit;
                 }
+            } elseif ($backupType === 'differential') {
+                // Retrieve the last full backup timestamp for the given email
+                $stmt = $pdo->prepare("SELECT last_full_backup FROM backup_logs WHERE email = :email ORDER BY last_backup DESC LIMIT 1");
+                $stmt->execute([':email' => $email]);
+                $lastFullBackup = $stmt->fetchColumn();
+            
+                if ($lastFullBackup) {
+                    // Format the last full backup timestamp for use in the SQL WHERE clause
+                    $lastFullBackupDate = date('Y-m-d H:i:s', strtotime($lastFullBackup));
+            
+                    // Open the backup file to write the SQL
+                    $backupFile = fopen($backupFilePath, 'w');
+                    if ($backupFile) {
+            
+                        // Function to generate SQL INSERT statements for modified rows
+                        function writeBackupData($pdo, $table, $lastFullBackupDate, $backupFile) {
+                            $stmt = $pdo->prepare("SELECT * FROM $table WHERE last_modified_timestamp > :timestamp");
+                            $stmt->execute([':timestamp' => $lastFullBackupDate]);
+                            $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+                            // Write each modified row as an INSERT statement
+                            foreach ($data as $row) {
+                                $columns = implode(", ", array_keys($row));
+                                $values = implode(", ", array_map(function ($value) {
+                                    return "'" . addslashes($value) . "'";
+                                }, array_values($row)));
+                                $insertSql = "INSERT INTO $table ($columns) VALUES ($values);\n";
+                                fwrite($backupFile, $insertSql);
+                            }
+                        }
+            
+                        // Dump modified rows for the relevant tables (user_db_connections, users, backup_logs)
+                        writeBackupData($pdo, 'user_db_connections', $lastFullBackupDate, $backupFile);
+                        writeBackupData($pdo, 'users', $lastFullBackupDate, $backupFile);
+                        writeBackupData($pdo, 'backup_logs', $lastFullBackupDate, $backupFile);
+            
+                        // Close the file after writing all data
+                        fclose($backupFile);
+            
+                        echo json_encode(['success' => true, 'message' => 'Differential backup completed successfully.']);
+                    } else {
+                        echo json_encode(['success' => false, 'message' => 'Failed to open backup file.']);
+                    }
+                } else {
+                    echo json_encode(['success' => false, 'message' => 'No full backup found for differential backup.']);
+                }
             } elseif ($backupType === 'snapshot') {
-                // Snapshot logic, can be just a full backup with some other considerations
-                $command = "mysqldump -u " . escapeshellarg($username) . " -p" . escapeshellarg($password) . " --single-transaction --quick --lock-tables=false " . escapeshellarg($database) . " > " . escapeshellarg($backupFilePath);
+                try {
+                    // Start the transaction to ensure consistency
+                    $db->beginTransaction(); 
+                    
+                    // Execute FLUSH TABLES WITH READ LOCK
+                    $db->exec("FLUSH TABLES WITH READ LOCK");
+            
+                    // Create backup file path and command for mysqldump
+                    $backupFilePath = '/path/to/backups/' . date('Y-m-d_H-i-s') . '_snapshot.sql';
+                    
+                    // Snapshot logic - Full backup without table structure and locking
+                    $command = "mysqldump -u " . escapeshellarg($username) . " -p" . escapeshellarg($password) . " --single-transaction --quick --no-create-info --lock-tables=false " . escapeshellarg($database) . " > " . escapeshellarg($backupFilePath);
+            
+                    // Execute the backup command
+                    exec($command, $output, $return_var);
+            
+                    // Check if mysqldump was successful
+                    if ($return_var !== 0) {
+                        throw new Exception("Snapshot backup failed. Error: " . implode("\n", $output));
+                    }
+            
+                    // Commit the transaction to release the lock
+                    $db->exec("UNLOCK TABLES");
+            
+                    // Success message
+                    echo "Snapshot backup completed successfully. Backup file: $backupFilePath";
+            
+                } catch (Exception $e) {
+                    // Rollback if any error occurs
+                    $db->exec("ROLLBACK");
+                    echo "Error: " . $e->getMessage();
+                }
             }
-
             // Execute the backup command
             exec($command . " 2>&1", $output, $return_var);
 
             if ($return_var === 0) {
                 // Insert a log entry into the backup_logs table
                 $stmt = $pdo->prepare("INSERT INTO backup_logs (file_name, email, backup_type, last_backup) VALUES (:file_name, :email, :backup_type, NOW())");
-                $stmt->execute([
+                $stmt->execute([ 
                     ':file_name' => $backupFileName,
                     ':email' => $email,
                     ':backup_type' => $backupType
