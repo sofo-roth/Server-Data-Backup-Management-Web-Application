@@ -101,6 +101,15 @@ h2 {
     letter-spacing: 0.5px;
 }
 
+h3 {
+    color: #ccff00;
+    font-size: 2rem;
+    font-weight: 600;
+    text-align: center;
+    margin-bottom: 2rem;
+    letter-spacing: 0.5px;
+}
+
 .table-wrapper {
     overflow-x: auto;
     border-radius: 10px;
@@ -374,5 +383,5 @@ button[type="button"].delete-btn:hover {
 }
 
 .backup-form button:hover {
-    background-color: rgb(146, 169, 0); /* Dark blue on hover */
+    background-color: rgb(172, 224, 0); /* Dark blue on hover */
 }

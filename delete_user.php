@@ -53,7 +53,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $deleteUserStmt = $pdo->prepare("DELETE FROM users WHERE email = ?");
             $deleteUserStmt->execute([$email]);
 
-            // Commit the transaction if both queries were successful
+            // Delete the user's backup logs from the backup_logs table
+            $deleteLogsStmt = $pdo->prepare("DELETE FROM backup_logs WHERE email = ?");
+            $deleteLogsStmt->execute([$email]);
+
+            // Delete the user's backup directory and its contents
+            $sanitizedEmail = str_replace(['@', '.'], '_', $email);
+            $userBackupDir = "backups/{$sanitizedEmail}/";
+            deleteDirectory($userBackupDir); // Delete the user's backup directory
+
+            // Commit the transaction if all queries were successful
             $pdo->commit();
 
             // Destroy the session and log the user out
@@ -76,9 +85,29 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit; // Ensure no further output
     }
 }
+
+// Function to recursively delete a directory and its contents
+function deleteDirectory($dirPath) {
+    if (!is_dir($dirPath)) {
+        return;  // Path is not a directory, nothing to delete
+    }
+    
+    $files = array_diff(scandir($dirPath), array('.', '..'));
+    
+    foreach ($files as $file) {
+        $filePath = $dirPath . DIRECTORY_SEPARATOR . $file;
+        
+        if (is_dir($filePath)) {
+            deleteDirectory($filePath);  // Recursively delete subdirectories
+        } else {
+            unlink($filePath);  // Delete file
+        }
+    }
+    
+    rmdir($dirPath);  // Delete the empty directory itself
+}
+
 ?>
-
-
 
 <!DOCTYPE html>
 <html lang="en">
