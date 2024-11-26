@@ -50,12 +50,8 @@ html, body{
     color: transparent;
     background-clip: text;
     -webkit-background-clip: text;
-    position: absolute;
-    top: 0px; /* Adjust as needed to move it up */
-    left: 50%; /* Center horizontally */
-    transform: translateX(-50%); /* Offset to perfectly center */
     line-height: 1.2;
-    padding: 40px;
+    margin: 0 auto; /* Centers the container */
 }
 
 .wrapper_home {

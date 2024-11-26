@@ -1,4 +1,4 @@
-<?php
+z<?php
 session_start(); // Start the session
 
 // Check if the user is logged in by verifying the session variable
@@ -47,7 +47,7 @@ $username = $emailParts[0]; // Get the first part of the email
 
     <h2 class="title_home">BUDBs Project</h2>
     <div class="wrapper_home">
-        <h1>Welcome to my official BUDB Thesis project main page</h1>
+        <h1>Welcome to my official BUDB Thesis project</h1>
     </div>
 </body>
 </html>
